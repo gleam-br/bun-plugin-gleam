@@ -1,6 +1,6 @@
 # 🧅 Gleam plugin to bun runtime.
 
-[Gleam](https://gleam.run/) language plugin to [bun][https://bun.com/] runtime.
+[Gleam](https://gleam.run/) language plugin to [bun](https://bun.com/) runtime.
 
 ## 🧪 Demo
 
