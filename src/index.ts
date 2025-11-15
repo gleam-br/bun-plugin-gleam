@@ -2,15 +2,12 @@
  * Gleam bun runtim e plugin to transpile gleam files.
  */
 
-import * as Process from "node:process";
 import * as Path from "node:path";
-import * as Fs from "node:fs";
 
 import { type BunPlugin, type OnLoadCallback, type PluginBuilder } from "bun"
 
-import { projectBuild, projectNew, isGleamFile, CONSTRAINTS } from "core-plugin-gleam";
-
-const PLUGIN_NAME: string = "bun-plugin-gleam";
+import { projectBuild, projectNew, isGleam } from "./project";
+import { GLEAM_CONFIG, CONSTRAINTS, PLUGIN_NAME } from "./util";
 
 /**
  * A Bun plugin that resolves imports with `.gleam` extensions to their
@@ -20,16 +17,16 @@ const PLUGIN_NAME: string = "bun-plugin-gleam";
  */
 export default function plugin(options: any | undefined): BunPlugin {
   const project = projectNew(options);
-  const build = projectBuild(project);
-  const { cfg, dir: { src, out }, args: { bunup } } = project;
+  const { dir: { cwd, src, out }, args: { build: { force } } } = project;
+  const cfg = Path.join(cwd, GLEAM_CONFIG);
 
   return {
     name: PLUGIN_NAME,
     async setup(builder: PluginBuilder) {
       // Only socket is open to execSync with bunup runtime.
       builder.onStart(async () => {
-        if (bunup) {
-          await build();
+        if (force) {
+          projectBuild(project);
         }
       });
       // Directories to build will be paths relative to the root of the Gleam project,
@@ -42,7 +39,7 @@ export default function plugin(options: any | undefined): BunPlugin {
       // Handle .gleam file resolution
       builder.onResolve(CONSTRAINTS, ({ path, importer }) => {
         // Only handle gleam file relative imports
-        if (!isGleamFile(path) || (!path.startsWith("./") && !path.startsWith("../"))) {
+        if (!isGleam(path) || (!path.startsWith("./") && !path.startsWith("../"))) {
           return;
         }
 
