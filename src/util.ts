@@ -2,7 +2,7 @@
  * Gleam BR js plugin util constant and functions
  */
 
-import { sep } from "node:path";
+import { sep } from "path";
 
 // todo experimental feat need testes`pt-BR`
 // - take [here](https://github.com/gleam-br/esbuild-plugin-gleam/blob/caffc638323f0c775bcca4e03d967cd5103aba82/index.js#L17C1-L18C1)
