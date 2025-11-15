@@ -2,10 +2,61 @@
 
 [Gleam](https://gleam.run/) language plugin to [bun](https://bun.com/) runtime.
 
+> This can uses with [bunup](https://bunup.dev/).
+
+## Options
+
+Vite config [vite.config.js](https://vite.dev/config/):
+
+```ts
+import { resolve } from "vite";
+import { defineConfig } from "vite";
+
+// type to plugin options
+import gleam from "vite-plugin-gleam";
+import {type GleamPlugin} from "./src/project";
+
+export default defineConfig({
+  plugins: [
+    // gleam plugin options
+    gleam({
+      // gleam root dir project
+      cwd: ".", // process.cwd() is default
+      // gleam binary path
+      bin: "gleam",
+      log: {
+        // "info" | "debug" | "trace" | "none"
+        level: "info",
+        // if put date and time
+        time: true
+      },
+      build: {
+        // Only bun runtime to force do build
+        force: true,
+        // gleam build arg to break on warnings
+        warningsAsErrors: true,
+        // gleam build arg to show or not cmd output
+        noPrintProgress: false
+      }
+    } as GleamPlugin)
+  ],
+  resolve: {
+    alias: {
+      // vite aliases to gleam build dir
+      '@gleam': resolve(__dirname, "./build/dev/javascript")
+    }
+  }
+})
+```
+
 ## 🧪 Demo
 
 - [bun-plugin-gleam-demo](https://github.com/gleam-br/bun-plugin-gleam-demo)
 - [bunup-plugin-gleam-demo](https://github.com/gleam-br/bunup-plugin-gleam-demo)
+- [vite-plugin-gleam-demo](https://github.com/gleam-br/vite-plugin-gleam-demo)
+- [vite-ts-plugin-gleam-demo](https://github.com/gleam-br/vite-ts-plugin-gleam-demo)
+- [vite-lustre-plugin-gleam-demo](https://github.com/gleam-br/vite-lustre-plugin-gleam-demo)
+
 
 ## 🌄 Roadmap
 
