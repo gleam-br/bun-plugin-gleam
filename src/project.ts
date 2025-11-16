@@ -1,11 +1,14 @@
 /**
- * Gleam js plugin project functions
+ *
+ * Gleam bun plugin project functions.
+ *
  */
 
-import { resolve } from "node:path";
+import { promisify } from "node:util";
+import { join, resolve } from "node:path";
 
-import { cwd as process_cwd } from "node:process";
-import { execSync } from "node:child_process";
+import { cwd as processCwd } from "node:process";
+import { exec as execCallback } from "node:child_process";
 
 import {
   GLEAM_BIN,
@@ -16,6 +19,9 @@ import {
   GLEAM_REGEX_CONFIG,
   logger,
 } from "./util";
+
+// promisify
+const exec = promisify(execCallback);
 
 /**
  * Gleam project info.
@@ -62,14 +68,15 @@ export interface GleamBuild {
  * Gleam build output.
  */
 export interface GleamBuildOut {
-  out: string
+  stdout: string
+  stderr: string
 }
 
 /** Gleam options default */
 const GLEAM_OPT_EMPTY = {
   bin: GLEAM_BIN,
   log: { time: false, level: "none" },
-  cwd: process_cwd(),
+  cwd: processCwd(),
   build: {
     force: false,
     noPrintProgress: true,
@@ -99,7 +106,7 @@ function getPluginOpts(options: any | undefined): GleamPlugin {
     ? options.cwd
     : typeof options.build?.config === "string"
       ? options.build?.config
-      : process_cwd();
+      : processCwd();
   const level = typeof options.log === "string"
     ? options.log
     : typeof options.log?.level === "string"
@@ -183,7 +190,7 @@ export function projectNew(options: any | undefined): GleamProject {
  *
  * @returns Promisify executing gleam build.
  */
-export function projectBuild(project: GleamProject): GleamBuildOut {
+export async function projectBuild(project: GleamProject): Promise<GleamBuildOut> {
   const {
     bin,
     log,
@@ -209,15 +216,13 @@ export function projectBuild(project: GleamProject): GleamBuildOut {
   // It's fine to bind everything upfront.
   try {
     log(`$ ${cmd}`);
-    const out = execSync(cmd, { cwd, encoding: "utf8" });
+    const res = await exec(cmd, { cwd, encoding: "utf8" });
 
-    if (out && out !== undefined && out !== "") {
-      log(`:> stdout ${JSON.stringify(out)}`)
-    }
-
-    return { out } as GleamBuildOut;
+    log(`:> stdout: ${res.stdout}`);
+    log(`:> stderr: ${res.stderr}`);
+    return res;
   } catch (err) {
-    log(`${JSON.stringify(err)}`, true);
+    log(`Failed '${cmd}`, true);
     throw err;
   }
 }

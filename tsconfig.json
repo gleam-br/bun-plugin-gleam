@@ -3,7 +3,6 @@
 		"target": "ES2023",
 		"module": "Preserve",
 		"moduleDetection": "force",
-
 		"moduleResolution": "bundler",
 		"allowImportingTsExtensions": true,
 		"verbatimModuleSyntax": true,
@@ -24,5 +23,12 @@
 	},
 
 	"include": ["src/**/*"],
-	"exclude": [".cache/", ".vscode/", "node_modules", "dist", "bunup.config.ts", "./gitignore.d/"]
+	"exclude": [
+		"node_modules",
+		"dist",
+		"bunup.config.ts",
+		".cache/",
+		".vscode/",
+		"./gitignore.d/"
+	]
 }
