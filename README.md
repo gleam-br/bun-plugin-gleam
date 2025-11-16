@@ -4,21 +4,58 @@
 
 > This can uses with [bunup](https://bunup.dev/).
 
-## Options
+##  Config
 
-Vite config [vite.config.js](https://vite.dev/config/):
+[Bun init](https://bun.com/docs/quickstart):
 
-```ts
-import { resolve } from "vite";
-import { defineConfig } from "vite";
+```sh
+bun init my-app
+cd my-app
+```
 
-// type to plugin options
-import gleam from "vite-plugin-gleam";
-import {type GleamPlugin} from "./src/project";
+Now, create directory `<roo>/bin` and files:
 
-export default defineConfig({
-  plugins: [
-    // gleam plugin options
+- `dist.js`: Bundle `src/index.js`into `dist/`.
+- `serve.js`: Serve on `:3000` directory `dist/`.
+
+Follow file contents:
+
+- Bun build:
+
+```js
+import gleam from "bun-plugin-gleam";
+
+Bun.build({
+  entry: ["src/index.js"],
+  out: "./dist",
+  plugins: [gleam({ force: true })]
+});
+```
+
+- Bun server:
+
+> required before run `bun run dist.js`
+
+```js
+import gleam from "bun-plugin-gleam";
+
+Bun.serve({
+  port: 3000,
+  plugins: [gleam({ log: "debug", force: true })],
+  routes: {
+    "/": function() {
+      return new Response('Bun plugin gleam!');
+    },
+  }
+});
+```
+
+## 🌸 Options
+
+```js
+import gleam from "bun-plugin-gleam";
+
+Bun.build({
     gleam({
       // gleam root dir project
       cwd: ".", // process.cwd() is default
@@ -28,25 +65,18 @@ export default defineConfig({
         // "info" | "debug" | "trace" | "none"
         level: "info",
         // if put date and time
-        time: true
+        time: true,
       },
       build: {
-        // Only bun runtime to force do build
+        // force build, default not exec gleam build
         force: true,
         // gleam build arg to break on warnings
         warningsAsErrors: true,
         // gleam build arg to show or not cmd output
-        noPrintProgress: false
-      }
-    } as GleamPlugin)
-  ],
-  resolve: {
-    alias: {
-      // vite aliases to gleam build dir
-      '@gleam': resolve(__dirname, "./build/dev/javascript")
-    }
-  }
-})
+        noPrintProgress: false,
+      },
+    } as GleamPlugin);
+});
 ```
 
 ## 🧪 Demo
@@ -54,9 +84,7 @@ export default defineConfig({
 - [bun-plugin-gleam-demo](https://github.com/gleam-br/bun-plugin-gleam-demo)
 - [bunup-plugin-gleam-demo](https://github.com/gleam-br/bunup-plugin-gleam-demo)
 - [vite-plugin-gleam-demo](https://github.com/gleam-br/vite-plugin-gleam-demo)
-- [vite-ts-plugin-gleam-demo](https://github.com/gleam-br/vite-ts-plugin-gleam-demo)
 - [vite-lustre-plugin-gleam-demo](https://github.com/gleam-br/vite-lustre-plugin-gleam-demo)
-
 
 ## 🌄 Roadmap
 
