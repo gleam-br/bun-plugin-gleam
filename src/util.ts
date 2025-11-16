@@ -2,9 +2,10 @@
  * Gleam BR js plugin util constant and functions
  */
 
+import { name } from "../package.json";
 import { sep } from "node:path";
 
-export const PLUGIN_NAME: string = "bun-plugin-gleam";
+export const PLUGIN_NAME: string = name;
 
 /** Gleam binary file */
 export const GLEAM_BIN = "gleam";
