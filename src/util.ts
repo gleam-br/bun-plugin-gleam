@@ -5,6 +5,7 @@
 import { name } from "../package.json";
 import { sep } from "node:path";
 
+/** Plugin name from package.json */
 export const PLUGIN_NAME: string = name;
 
 /** Gleam binary file */
