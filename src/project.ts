@@ -11,14 +11,15 @@ import { cwd as processCwd } from "node:process";
 import { exec as execCallback } from "node:child_process";
 
 import {
+  PLUGIN_VRN,
   GLEAM_BIN,
   GLEAM_SRC,
   GLEAM_BUILD,
+  GLEAM_CONFIG,
   GLEAM_REGEX_FILE,
   EXT_GLEAM,
   EXT_MJS,
   logger,
-  GLEAM_CONFIG,
 } from "./util";
 
 // promisify
@@ -113,7 +114,7 @@ export function projectNew(options: any | undefined): GleamProject {
   // log instance with level and has time prefix
   const log = logger(level, time)
 
-  log(`$ STARTUP OK !`);
+  log(`$ STARTUP OK ${PLUGIN_VRN} !`);
   log(`:> bin: '${bin}'`);
   log(`:> log.time: '${time}'`);
   log(`:> log.level: '${level}'`);
