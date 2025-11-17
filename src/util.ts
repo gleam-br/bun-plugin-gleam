@@ -26,6 +26,12 @@ export const GLEAM_REGEX_CONFIG: RegExp = /gleam\.toml$/;
 /** Regex of gleam file extension */
 export const GLEAM_REGEX_FILE: RegExp = /\.gleam$/;
 
+/** Gleam file extension */
+export const EXT_GLEAM: string = ".gleam";
+
+/** Mjs file extension */
+export const EXT_MJS: string = ".mjs";
+
 /** Gleam constraint to filter gleam files */
 export const CONSTRAINTS: { filter: RegExp } = { filter: GLEAM_REGEX_FILE }
 

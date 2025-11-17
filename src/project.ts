@@ -5,7 +5,7 @@
  */
 
 import { promisify } from "node:util";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 
 import { cwd as processCwd } from "node:process";
 import { exec as execCallback } from "node:child_process";
@@ -17,6 +17,8 @@ import {
   GLEAM_CONFIG,
   GLEAM_REGEX_FILE,
   GLEAM_REGEX_CONFIG,
+  EXT_GLEAM,
+  EXT_MJS,
   logger,
 } from "./util";
 
@@ -31,9 +33,7 @@ export interface GleamProject {
   // util.logger(level)
   log: any,
   dir: GleamDir,
-  args: {
-    build: GleamBuild,
-  }
+  build: GleamBuild,
 }
 
 export interface GleamDir {
@@ -84,15 +84,121 @@ const GLEAM_OPT_EMPTY = {
   }
 } as GleamPlugin;
 
+/**
+ * Get gleam project info from plugin options.
+ *
+ * @param options Gleam plugin options.
+ * @returns Project info like gleam binary, directories and more.
+ */
+export function projectNew(options: any | undefined): GleamProject {
+  const opts = getPluginOpts(options);
+  const { cwd, bin, log: { level, time }, build: { force, noPrintProgress, warningsAsErrors } } = opts
+  // Gleam expects a project to have `src/` directory at project root.
+  const src = resolve(cwd, GLEAM_SRC);
+  // Gleam compiler outputs artifacts under `build/` directory at project root.
+  // Directory structure inside is not documentated, but this is the only way
+  // to access built JS files. There is no way to specify output directory also.
+  const out = resolve(cwd, GLEAM_BUILD);
+  // log instance with level and has time prefix
+  const log = logger(level, time)
+
+  log(`$ STARTUP OK !`);
+  log(`:> bin: '${bin}'`);
+  log(`:> log.time: '${time}'`);
+  log(`:> log.level: '${level}'`);
+  log(`:> build.force: '${force}'`);
+  log(`:> cwd: '${cwd}'`);
+
+  return {
+    bin,
+    log,
+    dir: {
+      cwd,
+      src,
+      out,
+    },
+    build: {
+      force,
+      noPrintProgress,
+      warningsAsErrors
+    }
+  };
+}
+
+/**
+ * Gleam build to target javascript.
+ *
+ * @param bin Gleam binary location.
+ * @param projectDirRoot Gleam project root location of gleam.toml.
+ * @param noPrintProgress Gleam --no-print-progress build arg.
+ * @param warningsAsErrors Gleam --warnings-as-errors build arg.
+ *
+ * @returns Promisify executing gleam build.
+ */
+export async function projectBuild(project: GleamProject): Promise<GleamBuildOut> {
+  const {
+    bin,
+    log,
+    dir: { cwd },
+    build: { noPrintProgress, warningsAsErrors }
+  } = project;
+
+  const args = [bin, "build", "--target", "javascript"];
+
+  if (warningsAsErrors) {
+    args.push("--warnings-as-errors");
+  }
+
+  if (noPrintProgress) {
+    args.push("--no-print-progress");
+  }
+
+  const cmd = args.join(" ");
+
+  try {
+    log(`$ ${cmd}`);
+    const res = await exec(cmd, { cwd, encoding: "utf8" });
+    const out = `${res.stdout}${res.stderr}`;
+
+    if (out) {
+      log(`out: ${out}`);
+    }
+
+    return res;
+  } catch (err) {
+    log(`Failed '${cmd}`, true);
+    throw err;
+  }
+}
+
+/**
+ * Replace file path from gleam to param ext correspondent file.
+ *
+ * @param file File path to replaced.
+ * @param ext Extension to replaced.
+ * @returns File path replaced to extension.
+ */
+export function replaceId(file: string, ext: string = EXT_MJS): string | undefined {
+  return file.replace(GLEAM_REGEX_FILE, ext);
+}
+
+
+/**
+ * Is file a gleam file .gleam and is relative.
+ *
+ * @param file Path file to check.
+ * @returns If is gleam file or not.
+ */
+export function isGleam(file: string): boolean {
+  const isRelative = file.startsWith("./") || file.startsWith("../")
+  return isRelative && (endsWith(file, EXT_GLEAM) || GLEAM_REGEX_FILE.test(file));
+}
+
 // PRIVATE
 //
 
-/**
- * Get options from any.
- *
- * @param options any object.
- * @returns Gleam plugin options object.
- */
+// Get options, GleamPlugin, from any.
+//
 function getPluginOpts(options: any | undefined): GleamPlugin {
   if (!options || typeof options !== "object") {
     return GLEAM_OPT_EMPTY;
@@ -133,100 +239,8 @@ function getPluginOpts(options: any | undefined): GleamPlugin {
   };
 }
 
+// String word ends with term
+//
 function endsWith(word: string, term: string): boolean {
   return word ? word.endsWith(term) : false;
-}
-
-/**
- * Get gleam project info from plugin options.
- *
- * @param options Gleam plugin options.
- * @returns Project info like gleam binary, directories and more.
- */
-export function projectNew(options: any | undefined): GleamProject {
-  const opts = getPluginOpts(options);
-  const { cwd, bin, log: { level, time }, build: { force, noPrintProgress, warningsAsErrors } } = opts
-  // Gleam expects a project to have `src/` directory at project root.
-  const src = resolve(cwd, GLEAM_SRC);
-  // Gleam compiler outputs artifacts under `build/` directory at project root.
-  // Directory structure inside is not documentated, but this is the only way
-  // to access built JS files. There is no way to specify output directory also.
-  const out = resolve(cwd, GLEAM_BUILD);
-  // log instance with level and has time prefix
-  const log = logger(level, time)
-
-  log(`$ STARTUP OK !`);
-  log(`:> bin: '${bin}'`);
-  log(`:> log.time: '${time}'`);
-  log(`:> log.level: '${level}'`);
-  log(`:> build.force: '${force}'`);
-  log(`:> cwd: '${cwd}'`);
-
-  return {
-    bin,
-    log,
-    dir: {
-      cwd,
-      src,
-      out,
-    },
-    args: {
-      build: {
-        force,
-        noPrintProgress,
-        warningsAsErrors
-      }
-    },
-  };
-}
-
-/**
- * Gleam build to target javascript.
- *
- * @param bin Gleam binary location.
- * @param projectDirRoot Gleam project root location of gleam.toml.
- * @param noPrintProgress Gleam --no-print-progress build arg.
- * @param warningsAsErrors Gleam --warnings-as-errors build arg.
- *
- * @returns Promisify executing gleam build.
- */
-export async function projectBuild(project: GleamProject): Promise<GleamBuildOut> {
-  const {
-    bin,
-    log,
-    dir: { cwd },
-    args: {
-      build: { noPrintProgress, warningsAsErrors }
-    }
-  } = project;
-
-  const args = [bin, "build", "--target", "javascript"];
-
-  if (warningsAsErrors) {
-    args.push("--warnings-as-errors");
-  }
-
-  if (noPrintProgress) {
-    args.push("--no-print-progress");
-  }
-
-  const cmd = args.join(" ");
-
-  // Build command won't change during the plugin's lifetime.
-  // It's fine to bind everything upfront.
-  try {
-    log(`$ ${cmd}`);
-    const res = await exec(cmd, { cwd, encoding: "utf8" });
-
-    log(`:> stdout: ${res.stdout}`);
-    log(`:> stderr: ${res.stderr}`);
-    return res;
-  } catch (err) {
-    log(`Failed '${cmd}`, true);
-    throw err;
-  }
-}
-
-export function isGleam(file: string): boolean {
-  return endsWith(file, ".gleam") || GLEAM_REGEX_FILE.test(file);
 }
