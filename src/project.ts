@@ -5,7 +5,7 @@
  */
 
 import { promisify } from "node:util";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { cwd as processCwd } from "node:process";
 import { exec as execCallback } from "node:child_process";
@@ -14,12 +14,11 @@ import {
   GLEAM_BIN,
   GLEAM_SRC,
   GLEAM_BUILD,
-  GLEAM_CONFIG,
   GLEAM_REGEX_FILE,
-  GLEAM_REGEX_CONFIG,
   EXT_GLEAM,
   EXT_MJS,
   logger,
+  GLEAM_CONFIG,
 } from "./util";
 
 // promisify
@@ -34,6 +33,18 @@ export interface GleamProject {
   log: any,
   dir: GleamDir,
   build: GleamBuild,
+}
+
+/**
+ * Gleam config info from gleam.toml file.
+ */
+export interface GleamConfig {
+  name: string;
+  version: string;
+  target: string;
+  javascript: {
+    typescript_declarations: boolean
+  }
 }
 
 export interface GleamDir {
@@ -172,16 +183,30 @@ export async function projectBuild(project: GleamProject): Promise<GleamBuildOut
 }
 
 /**
+ * Get gleam.toml info.
+ *
+ * @param project Gleam project.
+ * @returns Gleam config.
+ * @see GleamProject
+ * @see GleamConfig
+ */
+export async function projectConfig(project: GleamProject): Promise<GleamConfig> {
+  const { dir: { cwd } } = project;
+  const cfg = join(cwd, GLEAM_CONFIG);
+
+  return await import(cfg)
+}
+
+/**
  * Replace file path from gleam to param ext correspondent file.
  *
  * @param file File path to replaced.
  * @param ext Extension to replaced.
  * @returns File path replaced to extension.
  */
-export function replaceId(file: string, ext: string = EXT_MJS): string | undefined {
+export function replaceId(file: string, ext: string = EXT_MJS): string {
   return file.replace(GLEAM_REGEX_FILE, ext);
 }
-
 
 /**
  * Is file a gleam file .gleam and is relative.

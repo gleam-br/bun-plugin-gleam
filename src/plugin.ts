@@ -5,21 +5,19 @@
  */
 
 import {
-  dirname,
   join,
-  relative,
   resolve,
-  sep,
+  dirname,
+  relative,
 } from "node:path";
 
 import {
-  isGleam,
+  type GleamProject,
   projectBuild,
+  projectConfig,
   replaceId,
-  type GleamBuildOut,
-  type GleamProject
+  isGleam,
 } from "./project";
-import { GLEAM_BUILD, GLEAM_CONFIG, GLEAM_SRC } from "./util";
 
 /**
  * Resolve the identification file/path gleam to mjs.
@@ -34,18 +32,13 @@ export async function resolveId(
   source: string,
   importer: string | undefined,
 ): Promise<{ path: string } | undefined> {
-  const { log, dir: { cwd } } = project
+  const { log, dir: { out } } = project
 
   if (!importer) {
-
     log(`[resolve] skip: importer is empty`)
     log(`:> skip source ${source}`)
     return;
-
-  }
-
-  if (source.startsWith("hex:")) {
-
+  } else if (source.startsWith("hex:")) {
     // resolve prefix `"hex:"`
     const id = resolveHex(project, source)
     return { path: id };
@@ -59,35 +52,22 @@ export async function resolveId(
     return;
   }
 
+  const { name } = await projectConfig(project);
+  log(`:>[resolve] name ${name}`);
   // relative path to gleam build dir
-  const id = join(cwd, GLEAM_BUILD, normalized, "..", source);
+  const path = join(out, name, normalized);
 
   log(`[resolve] ok!`);
-  log(`:>[resolve] normalized: ${normalized}`);
-  log(`:>[resolve] id: ${id}`);
-  return { path: id };
-
-  // // Calculate the absolute path of the imported .gleam file
-  // const absoluteGleamPath = resolve(dirname(importer), path);
-
-  // // Calculate the path relative to the root
-  // const relativeToSrc = relative(src, absoluteGleamPath);
-
-  // // Remove the .gleam extension
-  // const replacedId = replaceId(relativeToSrc)
-  // const withoutExtension = relativeToSrc.replace(/\.gleam$/, "");
-
-  // // Build the path to the compiled JavaScript file
-  // const compiledPath = join(
-  //   out,
-  //   name,
-  //   `${withoutExtension}.mjs`,
-  // );
-
-  // return { path: compiledPath };
+  log(`:>[resolve] ${path}`);
+  return { path };
 }
 
-
+/**
+ * Gleam project build files.
+ *
+ * @param project Gleam project.
+ * @see GleamProject
+ */
 export async function build(project: GleamProject): Promise<void> {
   const { log, build: { force } } = project;
 
@@ -129,40 +109,36 @@ async function normalize(
   importer: string,
   source = ""
 ): Promise<string | undefined> {
-  const { log, dir: { cwd, src } } = project;
+  const { log, dir: { cwd, out, src } } = project;
 
   // early skipping
   if (!isGleam(source)) {
-    log(`[resolve] skip: not gleam file`)
+    log(`[normalize] skip: not gleam file`)
     log(`:> skip source ${source}`)
     log(`:> skip importer ${importer}`)
     return;
   }
 
-  // replace identification
-  const replaced = replaceId(importer);
+  const absolutePath = resolve(dirname(importer), source);
+  log(`:> ${absolutePath}`);
+  const relativePath = relative(src, absolutePath);
+  log(`:> ${relativePath}`);
+  const replacedId = replaceId(relativePath);
 
-  if (!replaced) {
-    // skipping nothing to do
-    return;
-  }
+  return successLog(log, replacedId, importer, source);
+}
 
-  let path = relative(cwd, replaced);
-  log(`:>[normalize] relative cwd ${path}`);
-  // relative to cwd
-  const cfg = join(cwd, GLEAM_CONFIG);
-  // reload name from gleam.toml
-  const { name } = await import(cfg);
-  log(`:>[normalize] gleam project ${name}`);
-
-  if (path.startsWith(GLEAM_SRC)) {
-    path = path.replace(`${GLEAM_SRC}${sep}`, `${name}${sep}`);
-    log(`:>[normalize] found 'src' replace to '${name}${sep}'`);
-  }
-
+// Log success normalize importer and source.
+//
+function successLog(
+  log: any, path: string,
+  importer: string,
+  source: string
+): string {
   log(`[normalize] ok!`);
   log(`:>[normalize] ${path}`);
   log(`:>[normalize] source: ${source}`);
   log(`:>[normalize] importer: ${importer}`);
+
   return path;
 }

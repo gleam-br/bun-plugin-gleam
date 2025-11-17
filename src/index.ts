@@ -2,31 +2,12 @@
  * Gleam bun runtim e plugin to transpile gleam files.
  */
 
-import {
-  dirname,
-  join,
-  relative,
-  resolve
-} from "node:path";
+import { type BunPlugin, type PluginBuilder } from "bun";
 
-import {
-  type BunPlugin,
-  type OnLoadCallback,
-  type PluginBuilder,
-} from "bun";
+import { PLUGIN_NAME, CONSTRAINTS } from "./util";
 
-import {
-  projectNew,
-  projectBuild,
-  isGleam,
-  replaceId,
-} from "./project";
+import { projectNew } from "./project";
 
-import {
-  PLUGIN_NAME,
-  GLEAM_CONFIG,
-  CONSTRAINTS,
-} from "./util";
 import { build, resolveId } from "./plugin";
 
 /**
@@ -37,22 +18,18 @@ import { build, resolveId } from "./plugin";
  */
 export default function plugin(options: any | undefined): BunPlugin {
   const project = projectNew(options);
-  const { log, dir: { cwd, src, out }, build: { force } } = project;
-  const cfg = join(cwd, GLEAM_CONFIG);
 
   return {
     name: PLUGIN_NAME,
     async setup(builder: PluginBuilder) {
       builder.onStart(async () => {
-
+        // build .gleam files
         await build(project);
       });
 
-      builder.onResolve(CONSTRAINTS, ({ path, importer }) => {
-
+      builder.onResolve(CONSTRAINTS, ({ path, importer }): any => {
         // .gleam file resolution
         return resolveId(project, path, importer);
-
       });
     },
   };
